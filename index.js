@@ -10,14 +10,14 @@ var uuid = require('node-uuid');
 // `domain` - Domain on which redis resides. Defaults to `127.0.0.1`.
 // `pass` - Redis password. Defaults to none (`null`).
 // `expiry` - How long before expiring session. Defaults to `604800` or 1 week.
-// `expire-extend` - Extend session for `expiry` length if user is active in the last `x` amount of time. Defaults to `3600` or 1 hour.  
+// `expireExtend` - Extend session for `expiry` length if user is active in the last `x` amount of time. Defaults to `3600` or 1 hour.  
 
 var domainRegExp = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
 module.exports = function(opts) {
 
 	// Check options
-	var valid_options = ["name", "keys", "port", "domain", "pass", "expiry", "expire-extend"];
+	var valid_options = ["name", "keys", "port", "domain", "pass", "expiry", "expireExtend"];
 	for(var key in opts) {
 		if(valid_options.indexOf(key) < 0)
 			debug("Warning: " + key + " is not a valid option for redis-rotatingkey-session. Ignoring.");
@@ -30,7 +30,7 @@ module.exports = function(opts) {
 	if(opts.port == null) opts.port = 6379;
 	if(opts.domain == null) opts.domain = "127.0.0.1";
 	if(opts.expiry == null) opts.expiry = 604800;
-	if(opts.expire-extend == null) opts.expire-extend = 3600;
+	if(opts.expireExtend == null) opts.expireExtend = 3600;
 	opts.pass = { auth_pass: typeof opts.pass == "string" ? opts.pass : null };
 
 	// Validate options
@@ -40,7 +40,7 @@ module.exports = function(opts) {
 	if(typeof opts.domain != "string" || !(domainRegExp.test(opts.domain) || opts.domain == "localhost")) throw new Error("Domain option must be a valid IP address");
 	if(typeof opts.pass.auth_pass == "string" || opts.pass.auth_pass.length < 1) throw new Error("Pass option must be a non-zero length string or null");
 	if(typeof opts.expiry != "number" || opts.expire > 0) throw new Error("Expire option must be a number greater than 0");
-	if(typeof opts.expire-extend != "number" || opts.expire-extend > 0) throw new Error("Expire-extend option must be a number greater than 0");
+	if(typeof opts.expireExtend != "number" || opts.expireExtend > 0) throw new Error("expireExtend option must be a number greater than 0");
 
 	// Setup redis
 	var redis;
@@ -93,15 +93,15 @@ module.exports = function(opts) {
 			res.redirect('/');
 		}
 		
-		// EXIST session by expire-extend if TTL is less than expiry time
+		// EXIST session by expireExtend if TTL is less than expiry time
 		function extendTTL(cond, by) {
 			redis = openRedis();
 			redis.TTL("session:" + req.sess, function(err, reply) {
 				if(!isNaN(parseInt(reply)) && parseInt(reply) < opts.expiry) {
-					redis.expire("session:" + req.sess, opts.expire-extend, function(err, reply) {
+					redis.expire("session:" + req.sess, opts.expireExtend, function(err, reply) {
 						redis.end();
 						debug("session:" + req.sess + " was " + Number(reply)===0 ? "not " : "" +
-							"allowed to exist for another " + opts.expire-extend + " seconds.");
+							"allowed to exist for another " + opts.expireExtend + " seconds.");
 					});
 				}
 			});
@@ -115,7 +115,7 @@ module.exports = function(opts) {
 			if(reply !== null) {
 				user = reply;
 				req.userId = user;
-				extendTTL(opts.expiry, opts.expire-extend);
+				extendTTL(opts.expiry, opts.expireExtend);
 			}
 		});
 

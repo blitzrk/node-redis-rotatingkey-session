@@ -41,7 +41,7 @@ app.listen(3000);
   - `domain` - Domain on which redis resides. Defaults to `localhost`.
   - `pass` - Redis password. Defaults to none (`null`).
   - `expiry` - How long before expiring session. Defaults to `604800` or 1 week.
-  - `expire-extend` - Extend session for `expiry` length if user is active in the last `x` amount of time. Defaults to `3600` or 1 hour.
+  - `expireExtend` - Extend session for `expiry` length if user is active in the last `x` amount of time. Defaults to `3600` or 1 hour.
 
 ### Optional Dependencies
 
