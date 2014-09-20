@@ -17,14 +17,15 @@ var domainRegExp = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9
 module.exports = function(opts) {
 
 	// Check options
+	opts = opts || {};
 	var valid_options = ["name", "keys", "port", "domain", "pass", "expiry", "expireExtend"];
+
 	for(var key in opts) {
 		if(valid_options.indexOf(key) < 0)
 			debug("Warning: " + key + " is not a valid option for redis-rotatingkey-session. Ignoring.");
 	}
 
 	// Option defaults
-	opts = opts || {};
 	if(opts.name == null) opts.name = "rrksess";
 	if(opts.keys == null) opts.keys = "keygrip";
 	if(opts.port == null) opts.port = 6379;
@@ -43,9 +44,9 @@ module.exports = function(opts) {
 	if(isNaN(parseInt(opts.expireExtend)) || opts.expireExtend < 1) throw new Error("expireExtend option must be a number greater than 0");
 
 	// Setup redis
-	var redis;
 	function openRedis() {
-		var redis = redis_lib.createClient(opts.port, opts.domain, opts.pass);
+		// var redis = redis_lib.createClient(opts.port, opts.domain, opts.pass);
+		var redis = redis_lib.createClient();
 	 	redis.on("error", function (err) {
 	    	debug("Redis: Error " + err);
 	  	});
@@ -54,72 +55,72 @@ module.exports = function(opts) {
 
     // Return Connect-style middleware
     return function rrkSession(req, res, next) {
+    	var keys, redis;
+    	
     	// get keys
-    	var keys;
     	redis = openRedis();
     	redis.lrange(opts.keys, "0", "-1", function(err, reply) {
     		redis.end();
     		if(!err) keys = reply;
-    	});
+    		
+    		// read cookies
+    		var cookies = req.sessionCookies = new Cookies(req, res, keys);
 
-    	// read cookies
-    	var cookies = req.sessionCookies = new Cookies(req, res, keys);
-    	
-    	// get session ID and sign with newest key if not already
-    	var sess = cookies.get(opts.name, { signed: true });
-    	if(sess) req.sess = sess;
-    	
-    	// for new visitor or user/visitor with expired session
-		if(sess === undefined) {
-			// if signature is out of date, remove user session from redis
-			var oldSess = parseCookiesFor(opts.name, req);
-			if(oldSess) {
-				redis = openRedis();
-				redis.del("session:" + oldSess, function(err, reply) {
-					redis.end();
-					if(!err) {
-						if(Number(reply) === 1){
-							debug("Old session session:" + oldSess + " was removed.");
-						} else {
-							debug("Old session session:" + oldSess + " does not exist to be removed.");	
+			// get session ID and sign with newest key if not already
+	    	var sess = cookies.get(opts.name, { signed: true });
+	    	if(sess) req.sess = sess;
+	    	
+	    	// for new visitor or user/visitor with expired session
+			if(sess === undefined) {
+				// if signature is out of date, remove user session from redis
+				var oldSess = parseCookiesFor(opts.name, req);
+				if(oldSess) {
+					redis = openRedis();
+					redis.del("session:" + oldSess, function(err, reply) {
+						redis.end();
+						if(!err) {
+							if(Number(reply) === 1){
+								debug("Old session session:" + oldSess + " was removed.");
+							} else {
+								debug("Old session session:" + oldSess + " does not exist to be removed.");	
+							}
 						}
+					})
+				}
+
+				// create new session and send to homepage
+				sess = uuid.v4();
+				cookies.set(opts.name, sess, { signed: true} );
+				res.redirect('/');
+			}
+			
+			// EXIST session by expireExtend if TTL is less than expiry time
+			function extendTTL(cond, by) {
+				redis = openRedis();
+				redis.TTL("session:" + req.sess, function(err, reply) {
+					if(!isNaN(parseInt(reply)) && parseInt(reply) < opts.expiry) {
+						redis.expire("session:" + req.sess, opts.expireExtend, function(err, reply) {
+							redis.end();
+							debug("session:" + req.sess + " was " + Number(reply)===0 ? "not " : "" +
+								"allowed to exist for another " + opts.expireExtend + " seconds.");
+						});
 					}
-				})
+				});
 			}
 
-			// create new session and send to homepage
-			sess = uuid.v4();
-			cookies.set(opts.name, sess, { signed: true} );
-			res.redirect('/');
-		}
-		
-		// EXIST session by expireExtend if TTL is less than expiry time
-		function extendTTL(cond, by) {
+			// for unexpired session ID - try to get user
 			redis = openRedis();
-			redis.TTL("session:" + req.sess, function(err, reply) {
-				if(!isNaN(parseInt(reply)) && parseInt(reply) < opts.expiry) {
-					redis.expire("session:" + req.sess, opts.expireExtend, function(err, reply) {
-						redis.end();
-						debug("session:" + req.sess + " was " + Number(reply)===0 ? "not " : "" +
-							"allowed to exist for another " + opts.expireExtend + " seconds.");
-					});
+			redis.get("session:" + req.sess, function(err, reply) {
+				redis.end();
+				if(reply !== null) {
+					var user = reply;
+					req.userId = user;
+					extendTTL(opts.expiry, opts.expireExtend);
 				}
 			});
-		}
 
-		// for unexpired session ID - try to get user
-		var user;
-		redis = openRedis();
-		redis.get("session:" + req.sess, function(err, reply) {
-			redis.end();
-			if(reply !== null) {
-				user = reply;
-				req.userId = user;
-				extendTTL(opts.expiry, opts.expireExtend);
-			}
-		});
-
-    	next();
+	    	next();
+    	});
     };
 };
 
