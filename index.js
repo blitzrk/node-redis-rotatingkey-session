@@ -83,6 +83,7 @@ module.exports = function(opts) {
 						} else {
 							debug("Old session session:" + oldSess + " does not exist to be removed.");	
 						}
+					}
 				})
 			}
 

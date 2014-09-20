@@ -22,7 +22,7 @@ redis> LPUSH keygrip "110E8400-E29B-11D4-A716-446655440000"
 
 ```js
 var express = require('express');
-var rrksess = require('redis-rotatingkey-session');
+var rrkSession = require('redis-rotatingkey-session');
 
 var app = express();
 
