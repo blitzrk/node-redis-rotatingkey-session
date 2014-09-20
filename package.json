@@ -1,0 +1,39 @@
+{
+  "name": "redis-rotatingkey-session",
+  "version": "0.0.0",
+  "description": "Manage sessions with rotating keys stored in Redis to sign cookies",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --require should"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blitzrk/node-redis-rotatingkey-session"
+  },
+  "keywords": [
+    "express",
+    "middleware",
+    "redis",
+    "session",
+    "cookies"
+  ],
+  "author": "Ben Krieger <blitzrk@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blitzrk/node-redis-rotatingkey-session/issues"
+  },
+  "homepage": "https://github.com/blitzrk/node-redis-rotatingkey-session",
+  "devDependencies": {
+    "mocha": "^1.21.4",
+    "should": "^4.0.4"
+  },
+  "dependencies": {
+    "cookies": "^0.5.0",
+    "debug": "^2.0.0",
+    "node-uuid": "^1.4.1",
+    "redis": "^0.12.1"
+  },
+  "optionalDependencies": {
+    "hiredis": "^0.1.17"
+  }
+}
