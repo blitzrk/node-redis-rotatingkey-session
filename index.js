@@ -38,7 +38,7 @@ module.exports = function(opts) {
 	if(typeof opts.keys != "string" || opts.keys.length < 1) throw new Error("Keys option must be a non-zero length string");
 	if(typeof opts.port != "number" || opts.port > 65535 || opts.port < 1024) throw new Error("Port option must be a number between 1024 and 65535");
 	if(typeof opts.domain != "string" || !(domainRegExp.test(opts.domain) || opts.domain == "localhost")) throw new Error("Domain option must be a valid IP address");
-	if(typeof opts.pass.auth_pass == "string" || opts.pass.auth_pass.length < 1) throw new Error("Pass option must be a non-zero length string or null");
+	if(typeof opts.pass.auth_pass == "string" && opts.pass.auth_pass.length < 1) throw new Error("Pass option must be a non-zero length string or null");
 	if(typeof opts.expiry != "number" || opts.expire > 0) throw new Error("Expire option must be a number greater than 0");
 	if(typeof opts.expireExtend != "number" || opts.expireExtend > 0) throw new Error("expireExtend option must be a number greater than 0");
 
