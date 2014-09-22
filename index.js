@@ -45,8 +45,7 @@ module.exports = function(opts) {
 
 	// Setup redis
 	function openRedis() {
-		// var redis = redis_lib.createClient(opts.port, opts.domain, opts.pass);
-		var redis = redis_lib.createClient();
+		var redis = redis_lib.createClient(opts.port, opts.domain, opts.pass);
 	 	redis.on("error", function (err) {
 	    	debug("Redis: Error " + err);
 	  	});
